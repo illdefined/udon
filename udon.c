@@ -148,7 +148,7 @@ int main(int argc, char *argv[]) {
 			tm->tm_sec,
 			avg1,
 			avg5,
-			avg15, 
+			avg15,
 			atof(now) / atof(ful));
 
 		/* Zero-terminate string if truncated */
