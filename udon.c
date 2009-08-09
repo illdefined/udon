@@ -135,7 +135,7 @@ int main(int argc, char *argv[]) {
 		if (cat(loadavg, avg, sizeof avg) < 0)
 			die("Failed to read from “%s”: %s\n", LOADAVG, strerror(errno));
 
-		sscanf(avg, "%.2f %.2f %.2f", &avg1, &avg5, &avg15);
+		sscanf(avg, "%lf %lf %lf", &avg1, &avg5, &avg15);
 
 		/* Read battery state */
 		if (cat(engynow, now, sizeof now) < 0)
