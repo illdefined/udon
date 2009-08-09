@@ -37,26 +37,29 @@ static inline void die(const char *restrict fmt, ...) {
 /**
  * \brief Read from file beginning
  *
- * This function reads a maximum number of len bytes from the beginning of the
- * file described by fd into the buffer buf. The buffer will always
+ * This function reads a maximum number of len - 1 bytes from the beginning of
+ * the file described by fd into the buffer buf. The buffer will always
  * be zero-terminated if len is larger than zero.
  *
  * \param fd file descriptor
  * \param buf buffer to read into
- * \param len maximum number of bytes to read
+ * \param len size of buffer
  *
  * \return On success, the number of bytes read is returned.
  * On error, a negative number is returned and errno is set appropriately.
  */
 static inline ssize_t cat(int fd, char *buf, size_t len) {
-	ssize_t ret = pread(fd, buf, len, 0);
+	/* Reject invalid length */
+	if (len <= 0) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	ssize_t ret = pread(fd, buf, len - 1, 0);
 
 	/* Zero-terminate buffer */
-	if (len > 0)
-		if (ret > 0)
-			buf[ret - 1] = '\0';
-		else
-			buf[0] = '\0';
+	if (ret >= 0)
+		buf[ret] = '\0';
 
 	return ret;
 }
