@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +15,9 @@
 #define LOADAVG "/proc/loadavg"
 #define ENGYNOW "/sys/class/power_supply/BAT0/energy_now"
 #define ENGYFUL "/sys/class/power_supply/BAT0/energy_full"
+
+static Display *dpy;
+static Window root;
 
 /**
  * \brief Issue error message and die
@@ -57,14 +61,48 @@ static inline ssize_t cat(int fd, char *buf, size_t len) {
 	return ret;
 }
 
+/**
+ * \brief Exit handler
+ */
+static void onexit() {
+	/* Reset root window name and close X connection */
+	XStoreName(dpy, root, "");
+	XCloseDisplay(dpy);
+}
+
+/**
+ * \brief Signal handler
+ *
+ * \param sig signal
+ */
+static void onsignal(int sig) {
+	exit(EXIT_SUCCESS);
+}
+
 int main(int argc, char *argv[]) {
 	/* Connect to X server */
-	Display *dpy = XOpenDisplay((char *) 0);
+	dpy = XOpenDisplay((char *) 0);
 	if (!dpy)
 		die("Unable to open display “%s”\n", XDisplayName((char *) 0));
 
 	/* Determine root window */
-	Window root = RootWindow(dpy, DefaultScreen(dpy));
+	root = RootWindow(dpy, DefaultScreen(dpy));
+
+	/* Set exit handler */
+	atexit(onexit);
+
+	/* Configure signal handler */
+	struct sigaction act = {
+		.sa_handler = onsignal,
+		.sa_flags = 0,
+	};
+
+	sigfillset(&act.sa_mask);
+
+	if (sigaction(SIGHUP,  &act, (struct sigaction *) 0) ||
+		sigaction(SIGINT,  &act, (struct sigaction *) 0) ||
+		sigaction(SIGTERM, &act, (struct sigaction *) 0))
+		die("Unable to set signal handler: %s\n", strerror(errno));
 
 	int loadavg = open(LOADAVG, O_RDONLY);
 	if (loadavg < 0)
